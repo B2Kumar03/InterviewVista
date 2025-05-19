@@ -5,6 +5,9 @@ import WebcamFeed from "../components/Interview/WebcamFeed";
 import CodeEditor from "../components/Interview/CodeEditor";
 import { FaStopCircle, FaVideoSlash, FaVideo } from "react-icons/fa";
 import Timer from "../components/Shared/Timer";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
 
 const InterviewRoom = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -12,7 +15,7 @@ const InterviewRoom = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
   const [cameraStream, setCameraStream] = useState(null);
-
+  const [transcripts, setTranscript] = useState("");
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const audioContextRef = useRef(null);
@@ -38,27 +41,63 @@ const InterviewRoom = () => {
   // Mic setup for speech detection
   useEffect(() => {
     const setupMic = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        audioContextRef.current = new (window.AudioContext ||
-          window.webkitAudioContext)();
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        source.connect(analyserRef.current);
-        micRef.current = stream;
+  try {
+    // Start audio stream
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContextRef.current.createMediaStreamSource(stream);
+    analyserRef.current = audioContextRef.current.createAnalyser();
+    source.connect(analyserRef.current);
+    micRef.current = stream;
 
-        const data = new Uint8Array(analyserRef.current.frequencyBinCount);
-        speakingIntervalRef.current = setInterval(() => {
-          analyserRef.current.getByteFrequencyData(data);
-          const avg = data.reduce((a, b) => a + b) / data.length;
-          setIsSpeaking(avg > 10); // Adjust threshold
-        }, 200);
-      } catch (err) {
-        console.error("Mic access error:", err);
-      }
+    const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+
+    // Detect speaking activity based on volume threshold
+    speakingIntervalRef.current = setInterval(() => {
+      analyserRef.current.getByteFrequencyData(data);
+      const avg = data.reduce((a, b) => a + b) / data.length;
+      setIsSpeaking(avg > 10);
+    }, 200);
+
+    // ------------------------------
+    // Add Web Speech API below
+    // ------------------------------
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.error("SpeechRecognition is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US"; // or "en-IN" or any other locale
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(result => result[0])
+        .map(result => result.transcript)
+        .join("");
+      setTranscript(transcript);
+      console.log("User said:", transcript); // 👈 Your logged speech
     };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+    };
+
+    recognition.onend = () => {
+      console.warn("Speech recognition ended. Restarting...");
+      recognition.start(); // Restart on end for continuous listening
+    };
+
+    recognition.start(); // Start speech-to-text
+
+  } catch (err) {
+    console.error("Mic access error:", err);
+  }
+};
+
 
     setupMic();
 
@@ -182,7 +221,7 @@ const InterviewRoom = () => {
         {/* Left Panel */}
         <div className="flex flex-col gap-4">
           <QuestionCard />
-          <TextResponseBox isSpeaking={isSpeaking} />
+          <TextResponseBox isSpeaking={isSpeaking} transcript={transcripts} />
           <div className="bg-[#0B1120] p-4 rounded-lg">
             <h4 className="text-gray-400 mb-2">Code Submission</h4>
             <textarea
