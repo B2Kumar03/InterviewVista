@@ -19,6 +19,7 @@
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.0",
     "react-speech-recognition": "^4.0.1",
+    "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.7",
     "useref": "^1.4.4"
   },

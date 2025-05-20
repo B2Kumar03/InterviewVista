@@ -9,13 +9,14 @@ import { Toaster } from 'react-hot-toast';
 import Login from './components/authComponents/Login';
 import Register from './components/authComponents/Register';
 import SpeechToText from './components/Interview/SpeechToText';
+import { ToastContainer } from 'react-toastify';
 
 
 function App() {
   return (
     <>
     <Toaster position="top-right" reverseOrder={false} />
-    <SpeechToText/>
+    <ToastContainer position="top-right" autoClose={3000} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/interview" element={<InterviewRoom />} />

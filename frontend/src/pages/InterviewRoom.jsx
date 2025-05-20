@@ -16,6 +16,7 @@ const InterviewRoom = () => {
   const [cameraOn, setCameraOn] = useState(true);
   const [cameraStream, setCameraStream] = useState(null);
   const [transcripts, setTranscript] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false); // NEW state for fullscreen
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const audioContextRef = useRef(null);
@@ -30,73 +31,85 @@ const InterviewRoom = () => {
       if (!document.fullscreenElement) {
         try {
           await document.documentElement.requestFullscreen();
+          setIsFullscreen(true);
         } catch (err) {
           console.error("Fullscreen error:", err);
         }
       }
     };
     enterFullscreen();
+
+    // Listen for fullscreen change
+    const fullscreenChangeHandler = () => {
+      const fullscreen = !!document.fullscreenElement;
+      setIsFullscreen(fullscreen);
+    };
+    document.addEventListener("fullscreenchange", fullscreenChangeHandler);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", fullscreenChangeHandler);
+    };
   }, []);
 
   // Mic setup for speech detection
   useEffect(() => {
     const setupMic = async () => {
-  try {
-    // Start audio stream
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioContextRef.current.createMediaStreamSource(stream);
-    analyserRef.current = audioContextRef.current.createAnalyser();
-    source.connect(analyserRef.current);
-    micRef.current = stream;
+      try {
+        // Start audio stream
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContextRef.current.createMediaStreamSource(stream);
+        analyserRef.current = audioContextRef.current.createAnalyser();
+        source.connect(analyserRef.current);
+        micRef.current = stream;
 
-    const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+        const data = new Uint8Array(analyserRef.current.frequencyBinCount);
 
-    // Detect speaking activity based on volume threshold
-    speakingIntervalRef.current = setInterval(() => {
-      analyserRef.current.getByteFrequencyData(data);
-      const avg = data.reduce((a, b) => a + b) / data.length;
-      setIsSpeaking(avg > 10);
-    }, 200);
+        // Detect speaking activity based on volume threshold
+        speakingIntervalRef.current = setInterval(() => {
+          analyserRef.current.getByteFrequencyData(data);
+          const avg = data.reduce((a, b) => a + b) / data.length;
+          setIsSpeaking(avg > 10);
+        }, 200);
 
-    // ------------------------------
-    // Add Web Speech API below
-    // ------------------------------
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.error("SpeechRecognition is not supported in this browser.");
-      return;
-    }
+        // ------------------------------
+        // Add Web Speech API below
+        // ------------------------------
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          console.error("SpeechRecognition is not supported in this browser.");
+          return;
+        }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US"; // or "en-IN" or any other locale
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = "en-US"; // or "en-IN" or any other locale
 
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map(result => result[0])
-        .map(result => result.transcript)
-        .join("");
-      setTranscript(transcript);
-      console.log("User said:", transcript); // 👈 Your logged speech
+        recognition.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join("");
+          setTranscript(transcript);
+          console.log("User said:", transcript); // 👈 Your logged speech
+        };
+
+        recognition.onerror = (event) => {
+          console.error("Speech recognition error:", event.error);
+        };
+
+        recognition.onend = () => {
+          console.warn("Speech recognition ended. Restarting...");
+          recognition.start(); // Restart on end for continuous listening
+        };
+
+        recognition.start(); // Start speech-to-text
+
+      } catch (err) {
+        console.error("Mic access error:", err);
+      }
     };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-    };
-
-    recognition.onend = () => {
-      console.warn("Speech recognition ended. Restarting...");
-      recognition.start(); // Restart on end for continuous listening
-    };
-
-    recognition.start(); // Start speech-to-text
-
-  } catch (err) {
-    console.error("Mic access error:", err);
-  }
-};
 
 
     setupMic();
@@ -181,8 +194,33 @@ const InterviewRoom = () => {
     isRecording ? handleStopRecording() : handleStartRecording();
   };
 
+  // Go Fullscreen on modal button click
+  const goFullscreen = async () => {
+    try {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } catch (err) {
+      console.error("Fullscreen error:", err);
+    }
+  };
+
   return (
-    <div className="h-screen flex flex-col bg-[#131e38] text-white">
+    <div className="h-screen flex flex-col bg-[#131e38] text-white relative">
+      {/* Fullscreen Modal */}
+      {!isFullscreen && (
+        <div className="absolute inset-0 bg-black bg-opacity-90 z-50 flex flex-col items-center justify-center p-6 text-center">
+          <h2 className="text-3xl font-bold mb-4 text-white">
+            Please go full screen for the best experience
+          </h2>
+          <button
+            onClick={goFullscreen}
+            className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded text-white font-semibold text-lg"
+          >
+            Go Full Screen
+          </button>
+        </div>
+      )}
+
       {/* Navbar */}
       <div className="flex bg-[#0B1120] h-15 px-4 justify-between items-center">
         <h1 className="text-xl font-bold">
