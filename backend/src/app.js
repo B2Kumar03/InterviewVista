@@ -21,6 +21,8 @@ app.use(express.static("public"));
 
 runEval();
 
+console.log(evaluateCode())
+
 const explanation = [
   "Explanation: The student correctly identifies HTML as a markup language. However,  the statement used to write logic is incorrect. HTML is used to *structure* content on a webpage, not to write the logic (which is handled by things like JavaScript).  The answer shows some understanding but a significant misunderstanding of HTML's primary function."
 ];
@@ -29,6 +31,7 @@ const score = await scoreEvaluator(explanation);
 console.log("Extracted Score:", score); // Should log something like "1"
 
 import { generateInterviewQuestions } from "./services/questionGeneratorService.js";
+import { evaluateCode } from './services/codeEvaluationService.js';
 
 (async () => {
   const questions = await generateInterviewQuestions(
