@@ -1,17 +1,16 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiLogIn, FiLogOut, FiUser, FiHome } from 'react-icons/fi';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { AuthContext } from '../context/UserAuth';
 
 export default function Navbar() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   const [showInterviewModal, setShowInterviewModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
 
-  const user = {
-    name: "John Doe",
-    email: "john@example.com"
-  };
-
+  const navigate = useNavigate();
+   const {user,isLoggedIn,logout}=useContext(AuthContext);
+  
   const mockInterviews = [
     { id: 1, title: "Frontend Developer - Google", attempted: true },
     { id: 2, title: "Backend Developer - Amazon", attempted: false },
@@ -21,7 +20,15 @@ export default function Navbar() {
   ];
 
   const handleAuth = () => {
-    setIsLoggedIn(!isLoggedIn);
+   logout()
+  };
+
+  const handleInterviewsClick = () => {
+    if (isLoggedIn) {
+      setShowInterviewModal(true);
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
@@ -38,7 +45,7 @@ export default function Navbar() {
           </Link>
 
           <button
-            onClick={() => setShowInterviewModal(true)}
+            onClick={handleInterviewsClick}
             className="hover:text-green-300 flex items-center gap-1"
           >
             🎙️ Interviews
@@ -59,7 +66,7 @@ export default function Navbar() {
             </>
           ) : (
             <button
-              onClick={handleAuth}
+              onClick={() => navigate("/login")}
               className="flex items-center gap-1 px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-white"
             >
               <FiLogIn /> Login
@@ -68,7 +75,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Left Sidebar Modal */}
+      {/* Interview Sidebar */}
       {showInterviewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex">
           <div className="bg-white w-1/3 max-w-full p-5 shadow-xl overflow-y-auto relative animate-slide-in-left rounded-r-lg">
@@ -83,7 +90,7 @@ export default function Navbar() {
                 className="bg-gray-50 hover:bg-gray-100 rounded-lg mb-4 p-3 shadow-sm border"
               >
                 <img
-                  src="https://media.istockphoto.com/id/1298405314/vector/job-interview.jpg?s=612x612&w=0&k=20&c=F3P4brlXN7S35fe73OrxrKs0-FMc3VoMSuv6I6VIcGg="
+                  src="https://media.istockphoto.com/id/1298405314/vector/job-interview.jpg"
                   alt="Interview"
                   className="rounded-md h-32 w-full object-cover mb-3"
                 />
@@ -94,30 +101,23 @@ export default function Navbar() {
                     {interview.attempted ? "Attempted" : "Not Attempted"}
                   </span>
                 </p>
-                {interview.attempted ? (
-                  <button
-                    className="mt-3 w-full px-3 py-2 text-sm font-medium rounded-md bg-green-500 text-white hover:bg-green-600 transition"
-                  >
-                    See Details
-                  </button>
-                ) : (
-                  <button
-                    className="mt-3 w-full px-3 py-2 text-sm font-medium rounded-md bg-yellow-500 text-white hover:bg-yellow-600 transition"
-                    onClick={() => setSelectedInterview(interview)}
-                  >
-                    Try Again
-                  </button>
-                )}
+                <button
+                  className={`mt-3 w-full px-3 py-2 text-sm font-medium rounded-md ${
+                    interview.attempted ? "bg-green-500 hover:bg-green-600" : "bg-yellow-500 hover:bg-yellow-600"
+                  } text-white transition`}
+                  onClick={() => !interview.attempted && setSelectedInterview(interview)}
+                >
+                  {interview.attempted ? "See Details" : "Try Again"}
+                </button>
               </div>
             ))}
           </div>
 
-          {/* Background Click Close */}
           <div className="flex-1" onClick={() => setShowInterviewModal(false)} />
         </div>
       )}
 
-      {/* Right Side Modal for Try Again */}
+      {/* Right Modal for Try Again */}
       {selectedInterview && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-end">
           <div className="bg-white w-1/3 max-w-full p-5 shadow-xl overflow-y-auto animate-slide-in-right rounded-l-lg">
@@ -138,7 +138,6 @@ export default function Navbar() {
               </button>
             </div>
           </div>
-          {/* Click to close modal */}
           <div className="flex-1" onClick={() => setSelectedInterview(null)} />
         </div>
       )}

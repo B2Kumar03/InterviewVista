@@ -1,33 +1,43 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
+import { AuthContext } from "../context/UserAuth";
+
 
 const Login = () => {
   const navigate = useNavigate();
+ const { login } = useContext(AuthContext)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    const mockUser = {
-      email: "test@example.com",
-      password: "123456",
-    };
+    try {
+      const res = await fetch("http://localhost:8080/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-    if (email === mockUser.email && password === mockUser.password) {
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || "Login failed");
+       // Save user in context
       toast.success("Login successful!");
-      // Perform login logic here
-    } else {
-      toast.error("Invalid email or password");
+      login(data);
+      navigate("/"); // Redirect to home
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
   const handleGoogleLogin = () => {
-    // Mock Google login
     toast.success("Logged in with Google!");
-    // Add real Google OAuth here in future
+    // Add Google OAuth flow here in future
   };
 
   return (

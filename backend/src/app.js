@@ -19,36 +19,42 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 
 
-runEval();
+//imported user routes
+import userRouter from './routes/userRoutes.js';
+app.use("/api", userRouter);
 
-console.log(evaluateCode())
 
-const explanation = [
-  "Explanation: The student correctly identifies HTML as a markup language. However,  the statement used to write logic is incorrect. HTML is used to *structure* content on a webpage, not to write the logic (which is handled by things like JavaScript).  The answer shows some understanding but a significant misunderstanding of HTML's primary function."
-];
 
-const score = await scoreEvaluator(explanation);
-console.log("Extracted Score:", score); // Should log something like "1"
+// runEval();
 
-import { generateInterviewQuestions } from "./services/questionGeneratorService.js";
-import { evaluateCode } from './services/codeEvaluationService.js';
+// console.log(evaluateCode())
 
-(async () => {
-  const questions = await generateInterviewQuestions(
-    "Frontend Engineer",
-    "fresher",
-    ["React", "JavaScript", "Mongodb"],
-    "Google"
-  );
-  console.log(questions[0]);
-  /**
-   * [
-   *   "Explain the virtual DOM in React and how it improves performance.",
-   *   "How would you architect a large-scale React application with TypeScript?",
-   *   …
-   * ]
-   */
-})();
+// const explanation = [
+//   "Explanation: The student correctly identifies HTML as a markup language. However,  the statement used to write logic is incorrect. HTML is used to *structure* content on a webpage, not to write the logic (which is handled by things like JavaScript).  The answer shows some understanding but a significant misunderstanding of HTML's primary function."
+// ];
+
+// const score = await scoreEvaluator(explanation);
+// console.log("Extracted Score:", score); // Should log something like "1"
+
+// import { generateInterviewQuestions } from "./services/questionGeneratorService.js";
+// import { evaluateCode } from './services/codeEvaluationService.js';
+
+// (async () => {
+//   const questions = await generateInterviewQuestions(
+//     "Frontend Engineer",
+//     "fresher",
+//     ["React", "JavaScript", "Mongodb"],
+//     "Google"
+//   );
+//   console.log(questions[0]);
+//   /**
+//    * [
+//    *   "Explain the virtual DOM in React and how it improves performance.",
+//    *   "How would you architect a large-scale React application with TypeScript?",
+//    *   …
+//    * ]
+//    */
+// })();
 
 
 

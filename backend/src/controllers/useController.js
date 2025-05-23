@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { User } from "../models/User.model";
+import { User } from "../models/User.model.js";
 
 // REGISTER: POST /api/auth/register
 const register = async (req, res) => {
@@ -104,5 +104,17 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
 
 export { register, login };
