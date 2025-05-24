@@ -21,33 +21,41 @@ export const generateInterviewQuestions = async (
 
     // Build prompt
     const prompt = `
-You are an expert interviewer. Generate a JSON array of 7 interview questions tailored for:
+You are an expert interviewer. Generate a raw JSON array of 10 interview questions (give code also to write in question) tailored for:
 - Job Profile: ${jobProfile}
 - Experience Level: ${experienceLevel}
 - Key Skills: ${skills.join(", ")}
 - Target Company: ${targetCompany}
 
-Respond with ONLY a valid JSON array of strings, for example:
+Respond with ONLY a raw JSON array of strings (no markdown or code formatting). Example:
 [
   "Question 1?",
-  "Question 2?",
-  ...
+  "Question 2?"
 ]
 `;
 
     const result = await model.generateContent({
       contents: [{ parts: [{ text: prompt }] }],
     });
+
     const raw = await result.response.text();
-    
-    // Parse JSON safely
+
+    // Clean up any code block formatting (e.g., ```json ... ```)
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/, "")
+      .trim();
+
     let questions;
     try {
-      questions = JSON.parse(raw);
-      if (!Array.isArray(questions)) throw new Error("Not an array");
+      questions = JSON.parse(cleaned);
+      if (!Array.isArray(questions)) {
+        throw new Error("Response is not a JSON array");
+      }
     } catch (err) {
       throw new Error(
-        "Failed to parse JSON response from model: " + raw.slice(0, 200)
+        "Failed to parse JSON response from model: " + cleaned.slice(0, 200)
       );
     }
 
@@ -57,4 +65,5 @@ Respond with ONLY a valid JSON array of strings, for example:
     throw error;
   }
 };
+
 export default generateInterviewQuestions;

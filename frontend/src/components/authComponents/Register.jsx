@@ -13,9 +13,25 @@ const Register = () => {
     e.preventDefault();
 
     if (email && password.length >= 6 && name) {
-      toast.success("Registration successful!");
-      // Store mock user or navigate as needed
-      // Example: localStorage.setItem("user", JSON.stringify({ email, name }))
+      fetch("http://localhost:8080/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password, name }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data) {
+            toast.success("Registered successfully!");
+            navigate("/login");
+          } else {
+            toast.error(data.message);
+          }
+        })
+        .catch((error) => {
+          toast.error(error.message);
+        });
     } else {
       toast.error("Please fill all fields and make sure password is 6+ characters");
     }

@@ -49,3 +49,5 @@ const interViewSchema = new mongoose.Schema({
 });
 
 const InterviewSession = mongoose.model("InterviewSession", interViewSchema);
+
+export default InterviewSession;

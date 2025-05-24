@@ -15,6 +15,7 @@ export const UserAuth = ({ children }) => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+      setIsLoggedIn(true);
     }
   }, []);
 

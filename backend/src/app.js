@@ -24,6 +24,13 @@ import userRouter from './routes/userRoutes.js';
 app.use("/api", userRouter);
 
 
+import interViewRouter from './routes/interviewRoutes.js';
+app.use("/api", interViewRouter);
+
+import { createInterview } from "./controllers/interviewController.js";
+app.use("/api", createInterview);
+
+
 
 // runEval();
 

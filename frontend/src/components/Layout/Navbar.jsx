@@ -120,7 +120,7 @@ export default function Navbar() {
       {/* Right Modal for Try Again */}
       {selectedInterview && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-end">
-          <div className="bg-white w-1/3 max-w-full p-5 shadow-xl overflow-y-auto animate-slide-in-right rounded-l-lg">
+          <div className="bg-[white] w-1/3 max-w-full p-5 shadow-xl overflow-y-auto animate-slide-in-right rounded-l-lg">
             <div className="flex justify-between items-center border-b pb-3 mb-4">
               <h2 className="text-xl font-bold text-gray-800">🚀 Ready to Retry?</h2>
               <button onClick={() => setSelectedInterview(null)} className="text-xl font-bold text-gray-500 hover:text-red-600">✕</button>
