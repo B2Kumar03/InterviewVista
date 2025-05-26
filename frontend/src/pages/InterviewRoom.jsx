@@ -8,6 +8,7 @@ import Timer from "../components/Shared/Timer";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
+import { Navigate } from "react-router-dom";
 
 const InterviewRoom = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -24,6 +25,7 @@ const InterviewRoom = () => {
   const micRef = useRef(null);
   const speakingIntervalRef = useRef(null);
   const webcamVideoRef = useRef(null);
+  const navigate = Navigate;
 
   // Enter fullscreen once on mount
   useEffect(() => {
@@ -189,6 +191,13 @@ const InterviewRoom = () => {
     mediaRecorderRef.current?.stop();
     setIsRecording(false);
   };
+  useEffect(() => {
+    // Cleanup on component unmount
+    handleStartRecording()
+    return () => {
+      handleStopRecording()
+    }
+}, [])
 
   const toggleRecording = () => {
     isRecording ? handleStopRecording() : handleStartRecording();
@@ -202,6 +211,30 @@ const InterviewRoom = () => {
     } catch (err) {
       console.error("Fullscreen error:", err);
     }
+  };
+  const handleExit = () => {
+    
+    console.log("Exiting interview...");
+    // Logic to exit the interview room, e.g., navigate back or close the modal
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+    if (micRef.current) {
+      micRef.current.getTracks().forEach((track) => track.stop());
+    }
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+    }
+    clearInterval(speakingIntervalRef.current);
+    setIsRecording(false);
+    setCameraOn(false);
+    setCameraStream(null);
+    setTranscript("");
+    setIsSpeaking(false);
+    setIsFullscreen(false);
+// Redirect to  home or another page
+    console.log("Exiting interview...");
+    // You can add navigation logic here if needed
   };
 
   return (
@@ -263,11 +296,11 @@ const InterviewRoom = () => {
           <div className="bg-[#0B1120] p-4 rounded-lg">
             <h4 className="text-gray-400 mb-2">Code Submission</h4>
             <textarea
-              className="w-full h-24 bg-transparent outline-none border border-gray-700 text-white p-2 rounded"
+              className="w-full h-35 bg-transparent outline-none border border-gray-700 text-white p-2 rounded"
               placeholder="You can only paste code here. To write, open code editor from navbar."
             />
           </div>
-          <button className="bg-gray-700 px-4 py-2 rounded w-fit">
+          <button className="bg-gray-700 px-4 py-2 rounded w-fit" onClick={handleExit} >
             Exit Interview
           </button>
         </div>

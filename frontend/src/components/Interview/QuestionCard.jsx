@@ -6,7 +6,7 @@ const QuestionCard = () => {
       <h3 className="text-sm text-gray-400 mb-2">
         Current Question 5 of 20 | Category
       </h3>
-      <p className="text-white mb-4">
+      <p className="text-white mb-4 select-none">
         Explain the concept of polymorphism in C++ and provide an example using
         virtual functions.
       </p>
