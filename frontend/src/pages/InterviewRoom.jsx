@@ -8,7 +8,7 @@ import Timer from "../components/Shared/Timer";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const InterviewRoom = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -25,7 +25,7 @@ const InterviewRoom = () => {
   const micRef = useRef(null);
   const speakingIntervalRef = useRef(null);
   const webcamVideoRef = useRef(null);
-  const navigate = Navigate;
+  const navigate = useNavigate()
 
   // Enter fullscreen once on mount
   useEffect(() => {
@@ -212,30 +212,64 @@ const InterviewRoom = () => {
       console.error("Fullscreen error:", err);
     }
   };
+  const exitFullscreen = async () => {
+  try {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  } catch (err) {
+    console.error("Exit fullscreen error:", err);
+  }
+};
+
+  
   const handleExit = () => {
-    
-    console.log("Exiting interview...");
-    // Logic to exit the interview room, e.g., navigate back or close the modal
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-    }
-    if (micRef.current) {
-      micRef.current.getTracks().forEach((track) => track.stop());
-    }
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-    }
-    clearInterval(speakingIntervalRef.current);
-    setIsRecording(false);
-    setCameraOn(false);
-    setCameraStream(null);
-    setTranscript("");
-    setIsSpeaking(false);
-    setIsFullscreen(false);
-// Redirect to  home or another page
-    console.log("Exiting interview...");
-    // You can add navigation logic here if needed
-  };
+  console.log("Exiting interview...");
+
+  navigate("/"); // Redirect to home or another page
+
+  // Stop recording
+  if (mediaRecorderRef.current && isRecording) {
+    mediaRecorderRef.current.stop();
+  }
+
+  // Stop microphone
+  if (micRef.current) {
+    micRef.current.getTracks().forEach((track) => track.stop());
+  }
+
+  // Stop camera
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((track) => track.stop());
+  }
+
+  // ✅ Stop screen sharing
+  if (screenShareStream) {
+    screenShareStream.getTracks().forEach((track) => track.stop());
+  }
+
+  // Clean up
+  clearInterval(speakingIntervalRef.current);
+  setIsRecording(false);
+  setCameraOn(false);
+  setCameraStream(null);
+  setTranscript("");
+  setIsSpeaking(false);
+  setIsFullscreen(false);
+
+
+  exitFullscreen();
+
+  // Stop other background processes
+  handleStopRecording();
+
+  console.log("Exited interview successfully.");
+};
+
+
+  
+
 
   return (
     <div className="h-screen flex flex-col bg-[#131e38] text-white relative">
