@@ -5,16 +5,15 @@ import MainSection from '../components/Layout/MainSection'
 import FeaturesCard from '../components/Layout/FeaturesCard'
 import CreateInterview from './CreateInterview'
 import Instructions from './Instructions'
+import InterviewDetails from '../components/Interview/InterviewDetails'
 
 
 const Home = () => {
   return (
     <>
-    <Navbar/>
     <MainSection/>
     <FeaturesCard/>
     <Footer/>
-    <Instructions/>
     {}
     </>
   )

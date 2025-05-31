@@ -12,6 +12,7 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.1.7",
+    "axios": "^1.9.0",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -20,6 +21,7 @@
     "react-router-dom": "^7.6.0",
     "react-speech-recognition": "^4.0.1",
     "react-toastify": "^11.0.5",
+    "recharts": "^2.15.3",
     "tailwindcss": "^4.1.7",
     "useref": "^1.4.4"
   },

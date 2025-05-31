@@ -30,18 +30,20 @@ const interViewSchema = new mongoose.Schema({
   },
   score: {
     type: Number,
+    default: 0,
   },
   date: {
     type: Date,
     default: Date.now,
   },
   status: {
-    type: String,
-    enum: ["pending", "completed"],
-    default: "pending",
+    type: Boolean,
+    enum: [true, false],
+    default: false,
   },
   feedback: {
     type: String,
+    default: "",
   },
   code: {
     type: String,

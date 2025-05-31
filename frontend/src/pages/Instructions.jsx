@@ -1,6 +1,11 @@
 import React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const Instructions = () => {
+  const param =useParams();
+  const [isRead, setIsRead] = React.useState(false);
+  const navigate=useNavigate();
+ 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0B1120] text-white px-4">
       <div className="bg-[#172240] border border-gray-800 rounded-lg p-8 max-w-2xl w-full shadow-lg">
@@ -30,12 +35,18 @@ const Instructions = () => {
 
         <p className="text-yellow-400 mt-4 text-sm">
           <strong>Note:</strong> If you refresh the page, the interview will restart from the beginning.
-        </p>
-
+        </p><br />
+        <div className='flex items-center gap-2'><div><input type="checkbox" checked={isRead} onChange={(e) => setIsRead(e.target.checked)} /></div><div> <span className='text-sm text-[#ccc]'>I have read and agree to the above instructions</span></div></div>
         <div className="mt-6 flex justify-center">
-          <button className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2 rounded-md shadow">
-            Start Interview
-          </button>
+          <button
+  disabled={!isRead}
+  onClick={() => navigate(`/interview/${param.id}`)}
+  className={`text-white font-semibold px-6 py-2 rounded-md shadow 
+    ${isRead ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}
+>
+  Start Interview
+</button>
+
         </div>
       </div>
     </div>

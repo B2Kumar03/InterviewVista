@@ -2,7 +2,6 @@
 import React, { useContext, useState } from 'react';
 import { toast } from 'react-toastify';
 import { ModelCloseContext } from '../components/context/ModalClose';
-// import { generateInterviewQuestions } from '../services/questionGeneratorService'; // adjust path as needed
 
 const CreateInterview = () => {
   const [jobProfile, setJobProfile] = useState('');
@@ -28,23 +27,47 @@ const CreateInterview = () => {
       toast.error('Please fill out all fields.');
       return;
     }
-    console.log("Hello world")
-    toast.error('Failed to generate interview questions.');
-    setIsModalOpen(false);
-    
+
     try {
       setLoading(true);
-    //   const questions = await generateInterviewQuestions(
-    //     jobProfile,
-    //     experienceLevel,
-    //     skills,
-    //     targetCompany
-    //   );
-    //   console.log('Generated Questions:', questions);
-      toast.success('Interview created successfully!');
-      // You can navigate or update global state here
+
+      const token = localStorage.getItem('token'); // replace with correct token key if different
+      if (!token) {
+        toast.error('User not authenticated.');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8080/api/create-interview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          jobProfile,
+          experienceLevel,
+          skills,
+          targetCompany,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Interview created successfully!');
+        setIsModalOpen(false); // close modal
+        // Optionally reset fields here
+        setJobProfile('');
+        setExperienceLevel('Fresher');
+        setSkills([]);
+        setSkillInput('');
+        setTargetCompany('');
+      } else {
+        toast.error(data.message || 'Failed to create interview.');
+      }
     } catch (err) {
-      toast.error('Failed to generate interview questions.');
+      console.error('Error:', err);
+      toast.error('Something went wrong while creating interview.');
     } finally {
       setLoading(false);
     }
@@ -116,11 +139,7 @@ const CreateInterview = () => {
 
         <button
           className="absolute top-2 right-2 cursor-pointer hover:text-[#c9e4da] text-black text-lg font-bold"
-          onClick={() => {
-            // Optionally close modal here
-            setIsModalOpen(false);
-
-          }}
+          onClick={() => setIsModalOpen(false)}
         >
           ✕
         </button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import QuestionCard from "../components/Interview/QuestionCard";
 import TextResponseBox from "../components/Interview/TextResponseBox";
 import WebcamFeed from "../components/Interview/WebcamFeed";
@@ -9,6 +9,7 @@ import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 import { Navigate, useNavigate } from "react-router-dom";
+import { ModelCloseContext } from "../components/context/ModalClose";
 
 const InterviewRoom = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -26,8 +27,10 @@ const InterviewRoom = () => {
   const speakingIntervalRef = useRef(null);
   const webcamVideoRef = useRef(null);
   const navigate = useNavigate()
+  const {navClose, setNavClose}=useContext(ModelCloseContext);
 
   // Enter fullscreen once on mount
+  
   useEffect(() => {
     const enterFullscreen = async () => {
       if (!document.fullscreenElement) {
@@ -47,9 +50,10 @@ const InterviewRoom = () => {
       setIsFullscreen(fullscreen);
     };
     document.addEventListener("fullscreenchange", fullscreenChangeHandler);
-
+    setNavClose(true)
     return () => {
       document.removeEventListener("fullscreenchange", fullscreenChangeHandler);
+      setNavClose(false)
     };
   }, []);
 
