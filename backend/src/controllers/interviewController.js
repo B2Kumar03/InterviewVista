@@ -12,7 +12,7 @@ try {
         jobProfile:jobProfile,
         experienceLevel:experienceLevel,
         skills:skills,
-        questions:question
+        questions:question//this is 
     })
     await interview.save()
     return res.status(200).json({success:true,interview})
