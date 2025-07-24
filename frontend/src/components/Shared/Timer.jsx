@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-const Timer = ({ initialTime = 300 }) => {
+const Timer = ({ initialTime = 300, onComplete }) => {
   const [timeLeft, setTimeLeft] = useState(initialTime);
   const timerRef = useRef(null);
 
@@ -15,6 +15,7 @@ const Timer = ({ initialTime = 300 }) => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
+          if (onComplete) onComplete();
           return 0;
         }
         return prev - 1;
@@ -22,7 +23,7 @@ const Timer = ({ initialTime = 300 }) => {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, []);
+  }, [onComplete]);
 
   return (
     <div className="text-lg font-mono p-1 bg-[#d84747] rounded w-fit text-white shadow">

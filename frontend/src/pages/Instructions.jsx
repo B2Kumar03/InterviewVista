@@ -2,51 +2,51 @@ import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const Instructions = () => {
-  const param =useParams();
-  const [isRead, setIsRead] = React.useState(false);
-  const navigate=useNavigate();
- 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0B1120] text-white px-4">
-      <div className="bg-[#172240] border border-gray-800 rounded-lg p-8 max-w-2xl w-full shadow-lg">
-        <h2 className="text-2xl font-bold text-center mb-6">
-          Important Interview Instructions
-        </h2>
+  const navigate = useNavigate();
+  const { id } = useParams();
 
-        <div className="bg-red-900 text-red-300 border border-red-700 rounded p-4 mb-6 flex items-start gap-2">
-          <span>⚠️</span>
+  const startInterview = () => {
+    navigate(`/interview/${id}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full bg-white rounded-lg shadow-lg p-8">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+          Interview Instructions
+        </h1>
+        <div className="space-y-4 text-gray-700">
           <p>
-            You must maintain fullscreen mode throughout the interview. Exiting
-            fullscreen mode multiple times will terminate the interview session.
+            Welcome to your interview. Please read the instructions below carefully before you begin.
+          </p>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">Technical Round:</h2>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>You will be presented with a series of technical questions.</li>
+              <li>For coding questions, a code editor will be provided.</li>
+              <li>You can switch between questions, but you must submit your answers before the timer runs out.</li>
+              <li>You will be required to share your screen during the interview.</li>
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-800">HR Round:</h2>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>This round will assess your soft skills and cultural fit.</li>
+              <li>Be prepared to answer behavioral questions.</li>
+              <li>Your camera and microphone must be enabled for this round.</li>
+            </ul>
+          </div>
+          <p className="text-center font-semibold text-lg mt-6">
+            Good Luck!
           </p>
         </div>
-
-        <ul className="space-y-3 text-sm leading-relaxed text-gray-300">
-          <li>• A stable internet connection to prevent interruptions</li>
-          <li>• A quiet environment for clear audio recording</li>
-          <li>• Your camera and microphone properly set up</li>
-          <li>• Enough time to complete the interview without interruption</li>
-          <li>
-            • Once you proceed to the next question, you will{' '}
-            <span className="text-red-400 font-medium">not be able to return to the previous one</span>.
-            Ensure you review and save your response before moving forward.
-          </li>
-        </ul>
-
-        <p className="text-yellow-400 mt-4 text-sm">
-          <strong>Note:</strong> If you refresh the page, the interview will restart from the beginning.
-        </p><br />
-        <div className='flex items-center gap-2'><div><input type="checkbox" checked={isRead} onChange={(e) => setIsRead(e.target.checked)} /></div><div> <span className='text-sm text-[#ccc]'>I have read and agree to the above instructions</span></div></div>
-        <div className="mt-6 flex justify-center">
+        <div className="text-center mt-8">
           <button
-  disabled={!isRead}
-  onClick={() => navigate(`/interview/${param.id}`)}
-  className={`text-white font-semibold px-6 py-2 rounded-md shadow 
-    ${isRead ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'}`}
->
-  Start Interview
-</button>
-
+            onClick={startInterview}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300"
+          >
+            Start Interview
+          </button>
         </div>
       </div>
     </div>

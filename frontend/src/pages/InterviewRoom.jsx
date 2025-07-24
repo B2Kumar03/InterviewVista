@@ -1,404 +1,388 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
-import QuestionCard from "../components/Interview/QuestionCard";
-import TextResponseBox from "../components/Interview/TextResponseBox";
-import WebcamFeed from "../components/Interview/WebcamFeed";
-import CodeEditor from "../components/Interview/CodeEditor";
-import { FaStopCircle, FaVideoSlash, FaVideo } from "react-icons/fa";
+import React, { useState, useEffect, useRef } from "react";
+import Editor from "@monaco-editor/react";
 import Timer from "../components/Shared/Timer";
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from "react-speech-recognition";
-import { Navigate, useNavigate } from "react-router-dom";
-import { ModelCloseContext } from "../components/context/ModalClose";
+import { useNavigate, useParams } from "react-router-dom";
 
 const InterviewRoom = () => {
+  const { id } = useParams();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [friendAdded, setFriendAdded] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [responseText, setResponseText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [showEditor, setShowEditor] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [cameraOn, setCameraOn] = useState(true);
-  const [cameraStream, setCameraStream] = useState(null);
-  const [transcripts, setTranscript] = useState("");
-  const [isFullscreen, setIsFullscreen] = useState(false); // NEW state for fullscreen
-  const mediaRecorderRef = useRef(null);
-  const recordedChunksRef = useRef([]);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const micRef = useRef(null);
-  const speakingIntervalRef = useRef(null);
-  const webcamVideoRef = useRef(null);
-  const navigate = useNavigate()
-  const {navClose, setNavClose}=useContext(ModelCloseContext);
+  const [cameraOn, setCameraOn] = useState(false);
+  const [micOn, setMicOn] = useState(false);
+  const [showCodeEditor, setShowCodeEditor] = useState(false);
+  const [code, setCode] = useState("// Write your code here");
 
-  // Enter fullscreen once on mount
-  
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [responses, setResponses] = useState([]);
+
+  const textAreaRef = useRef(null);
+  const videoRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const streamRef = useRef(null);
+  const navigate = useNavigate();
+
+  const roomURL = `${window.location.origin}/interview/room/12345`;
+
   useEffect(() => {
-    const enterFullscreen = async () => {
-      if (!document.fullscreenElement) {
-        try {
-          await document.documentElement.requestFullscreen();
-          setIsFullscreen(true);
-        } catch (err) {
-          console.error("Fullscreen error:", err);
-        }
-      }
-    };
-    enterFullscreen();
+    if (!id) return;
+    async function fetchData() {
+      const res = await fetch(
+        `http://localhost:8080/api/interview/${id}`
+      );
+      const data = await res.json();
+      setQuestions(data["interview"].questions);
+      setResponses(
+        Array(data["interview"].questions.length).fill({
+          question: "",
+          text: "",
+          code: "",
+        })
+      );
+    }
+    fetchData();
+  }, [id]);
 
-    // Listen for fullscreen change
-    const fullscreenChangeHandler = () => {
-      const fullscreen = !!document.fullscreenElement;
-      setIsFullscreen(fullscreen);
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement != null);
     };
-    document.addEventListener("fullscreenchange", fullscreenChangeHandler);
-    setNavClose(true)
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
     return () => {
-      document.removeEventListener("fullscreenchange", fullscreenChangeHandler);
-      setNavClose(false)
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, []);
 
-  // Mic setup for speech detection
+  const enterFullscreen = () => {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    }
+  };
+
   useEffect(() => {
-    const setupMic = async () => {
-      try {
-        // Start audio stream
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioContextRef.current.createMediaStreamSource(stream);
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        source.connect(analyserRef.current);
-        micRef.current = stream;
+    if (
+      !("webkitSpeechRecognition" in window || "SpeechRecognition" in window)
+    ) {
+      alert("Your browser doesn't support Speech Recognition. Try Chrome.");
+      return;
+    }
 
-        const data = new Uint8Array(analyserRef.current.frequencyBinCount);
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
 
-        // Detect speaking activity based on volume threshold
-        speakingIntervalRef.current = setInterval(() => {
-          analyserRef.current.getByteFrequencyData(data);
-          const avg = data.reduce((a, b) => a + b) / data.length;
-          setIsSpeaking(avg > 10);
-        }, 200);
+    let finalTranscript = "";
 
-        // ------------------------------
-        // Add Web Speech API below
-        // ------------------------------
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          console.error("SpeechRecognition is not supported in this browser.");
-          return;
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setIsTyping(true);
+    };
+
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interimTranscript += transcript;
         }
-
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = "en-US"; // or "en-IN" or any other locale
-
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map(result => result[0])
-            .map(result => result.transcript)
-            .join("");
-          setTranscript(transcript);
-          console.log("User said:", transcript); // 👈 Your logged speech
-        };
-
-        recognition.onerror = (event) => {
-          console.error("Speech recognition error:", event.error);
-        };
-
-        recognition.onend = () => {
-          console.warn("Speech recognition ended. Restarting...");
-          recognition.start(); // Restart on end for continuous listening
-        };
-
-        recognition.start(); // Start speech-to-text
-
-      } catch (err) {
-        console.error("Mic access error:", err);
       }
+
+      setResponseText(finalTranscript + interimTranscript);
     };
 
-
-    setupMic();
-
-    return () => {
-      clearInterval(speakingIntervalRef.current);
-      micRef.current?.getTracks().forEach((track) => track.stop());
+    recognition.onend = () => {
+      setIsRecording(false);
+      setIsTyping(false);
     };
+
+    recognitionRef.current = recognition;
   }, []);
 
-  // Camera setup
-  useEffect(() => {
-    const initCamera = async () => {
+  const handleMicToggle = () => {
+    if (!micOn) {
+      recognitionRef.current?.start();
+    } else {
+      recognitionRef.current?.stop();
+    }
+    setMicOn(!micOn);
+  };
+
+  const handleCameraToggle = async () => {
+    if (!cameraOn) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
         });
-        setCameraStream(stream);
-        if (webcamVideoRef.current) {
-          webcamVideoRef.current.srcObject = stream;
-        }
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setCameraOn(true);
       } catch (err) {
-        console.error("Camera access error:", err);
+        alert("Camera access denied.");
       }
+    } else {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+      setCameraOn(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(roomURL);
+    alert("URL copied to clipboard!");
+  };
+
+  const handleToggleCodeEditor = () => {
+    setShowCodeEditor((prev) => !prev);
+  };
+
+  const handleNext = () => {
+    const updatedResponses = [...responses];
+    updatedResponses[currentIndex] = {
+      question: questions[currentIndex],
+      text: responseText,
+      code: code,
     };
+    setResponses(updatedResponses);
 
-    initCamera();
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < questions.length) {
+      setCurrentIndex(nextIndex);
+      setResponseText("");
+      setCode("// Write your code here");
+    }
+  };
 
-    return () => {
-      cameraStream?.getTracks().forEach((track) => track.stop());
+  const handlePrev = () => {
+    const updatedResponses = [...responses];
+    updatedResponses[currentIndex] = {
+      text: responseText,
+      code: code,
     };
-  }, []);
+    setResponses(updatedResponses);
 
-  // Update webcam element on toggle
-  useEffect(() => {
-    if (webcamVideoRef.current) {
-      if (cameraOn && cameraStream) {
-        webcamVideoRef.current.srcObject = cameraStream;
-      } else {
-        webcamVideoRef.current.srcObject = null;
-      }
-    }
-  }, [cameraOn, cameraStream]);
-
-  const handleStartRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-      });
-      recordedChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, {
-          type: "video/webm",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "interview-recording.webm";
-        a.click();
-      };
-
-      mediaRecorder.start();
-      mediaRecorderRef.current = mediaRecorder;
-      setIsRecording(true);
-    } catch (err) {
-      console.error("Screen recording error:", err);
+    const prevIndex = currentIndex - 1;
+    if (prevIndex >= 0) {
+      setCurrentIndex(prevIndex);
+      setResponseText(responses[prevIndex]?.text || "");
+      setCode(responses[prevIndex]?.code || "// Write your code here");
     }
   };
 
-  const handleStopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
+  const handleTimeout = () => {
+    alert("Time's up! Submitting your interview.");
+    // Here you would typically handle the submission of the interview data
+    navigate('/');
   };
-  useEffect(() => {
-    // Cleanup on component unmount
-    handleStartRecording()
-    return () => {
-      handleStopRecording()
-    }
-}, [])
-
-  const toggleRecording = () => {
-    isRecording ? handleStopRecording() : handleStartRecording();
-  };
-
-  // Go Fullscreen on modal button click
-  const goFullscreen = async () => {
-    try {
-      await document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } catch (err) {
-      console.error("Fullscreen error:", err);
-    }
-  };
-  const exitFullscreen = async () => {
-  try {
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  } catch (err) {
-    console.error("Exit fullscreen error:", err);
-  }
-};
-
-  
-  const handleExit = () => {
-  console.log("Exiting interview...");
-
-  navigate("/"); // Redirect to home or another page
-
-  // Stop recording
-  if (mediaRecorderRef.current && isRecording) {
-    mediaRecorderRef.current.stop();
-  }
-
-  // Stop microphone
-  if (micRef.current) {
-    micRef.current.getTracks().forEach((track) => track.stop());
-  }
-
-  // Stop camera
-  if (cameraStream) {
-    cameraStream.getTracks().forEach((track) => track.stop());
-  }
-
-  // ✅ Stop screen sharing
-  if (screenShareStream) {
-    screenShareStream.getTracks().forEach((track) => track.stop());
-  }
-
-  // Clean up
-  clearInterval(speakingIntervalRef.current);
-  setIsRecording(false);
-  setCameraOn(false);
-  setCameraStream(null);
-  setTranscript("");
-  setIsSpeaking(false);
-  setIsFullscreen(false);
-
-
-  exitFullscreen();
-
-  // Stop other background processes
-  handleStopRecording();
-
-  console.log("Exited interview successfully.");
-};
-
-
-  
-
 
   return (
-    <div className="h-screen flex flex-col bg-[#131e38] text-white relative">
-      {/* Fullscreen Modal */}
+    <div className="h-screen w-screen flex bg-gray-50 font-sans relative">
       {!isFullscreen && (
-        <div className="absolute inset-0 bg-black bg-opacity-90 z-50 flex flex-col items-center justify-center p-6 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-white">
-            Please go full screen for the best experience
-          </h2>
+        <div className="absolute inset-0 bg-black bg-opacity-80 flex flex-col justify-center items-center z-50">
+          <h1 className="text-3xl text-white mb-4">Please enter fullscreen mode</h1>
           <button
-            onClick={goFullscreen}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded text-white font-semibold text-lg"
+            onClick={enterFullscreen}
+            className="bg-blue-600 px-6 py-3 rounded text-white text-lg hover:bg-blue-700"
           >
-            Go Full Screen
+            Enter Fullscreen
           </button>
         </div>
       )}
+      {/* Left Panel */}
+      <div className="w-1/2 h-full bg-[#eef2fb] flex flex-col p-6 gap-6 overflow-y-auto">
+        <div className="text-2xl font-bold text-[#0033A0]">
+          🎥 InterviewVista
+        </div>
 
-      {/* Navbar */}
-      <div className="flex bg-[#0B1120] h-15 px-4 justify-between items-center">
-        <h1 className="text-xl font-bold">
-          <span className="text-green-400">AI-Powered</span> Mock Interview
-        </h1>
-        <div className="flex gap-2">
+        <div className="bg-white p-5 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">📝 Question</h2>
+          {questions.length > 0 && (
+            <div className="bg-[#0B1120] p-4 rounded-lg">
+              <h3 className="text-sm text-gray-400 mb-2">
+                Current Question {currentIndex + 1} of {questions.length}
+              </h3>
+              <p className="text-white">{questions[currentIndex]}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white p-5 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">🗣️ Your Response</h2>
+          <textarea
+            ref={textAreaRef}
+            value={responseText}
+            onChange={(e) => setResponseText(e.target.value)}
+            className={`w-full text-black h-32 p-3 border rounded resize-none focus:outline-none transition-all duration-300 ${
+              isTyping
+                ? "border-blue-500 ring-2 ring-blue-300 animate-pulse"
+                : "border-gray-300"
+            }`}
+            placeholder="Type or speak your response..."
+          />
+        </div>
+
+        <div className="bg-white p-5 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">💻 Code Response</h2>
+          <Editor
+            height="200px"
+            defaultLanguage="javascript"
+            value={code}
+            onChange={(value) => setCode(value)}
+            theme="vs-dark"
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              scrollBeyondLastLine: false,
+              wordWrap: "on",
+            }}
+          />
+        </div>
+
+        <div className="flex justify-between mt-auto">
           <button
-            onClick={toggleRecording}
-            className={`border px-3 py-1 rounded-md text-sm ${
-              isRecording
-                ? "border-red-500 text-red-400"
-                : "border-gray-600 text-white"
+            onClick={handlePrev}
+            disabled={currentIndex === 0}
+            className={`px-4 py-2 rounded ${
+              currentIndex === 0
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-gray-500 hover:bg-gray-600 text-white"
             }`}
           >
-            {isRecording ? "Stop Recording" : "Record Screen"}
+            ⬅ Prev
           </button>
-
           <button
-            onClick={() => setCameraOn((prev) => !prev)}
-            className="border border-gray-500 px-3 py-1 rounded-md text-sm"
+            onClick={handleNext}
+            disabled={currentIndex === questions.length - 1}
+            className={`px-4 py-2 rounded ${
+              currentIndex === questions.length - 1
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700 text-white"
+            }`}
           >
-            {cameraOn ? "Turn Off Camera" : "Turn On Camera"}
-          </button>
-
-          <button
-            className="bg-white text-black px-3 py-1 rounded-md text-sm font-medium"
-            onClick={() => setShowEditor((prev) => !prev)}
-          >
-            {showEditor ? "Hide Code Editor" : "Show Code Editor"}
+            Next ➡
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-grow overflow-y-auto p-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Left Panel */}
-        <div className="flex flex-col gap-4">
-          <QuestionCard />
-          <TextResponseBox isSpeaking={isSpeaking} transcript={transcripts} />
-          <div className="bg-[#0B1120] p-4 rounded-lg">
-            <h4 className="text-gray-400 mb-2">Code Submission</h4>
-            <textarea
-              className="w-full h-35 bg-transparent outline-none border border-gray-700 text-white p-2 rounded"
-              placeholder="You can only paste code here. To write, open code editor from navbar."
-            />
-          </div>
-          <button className="bg-gray-700 px-4 py-2 rounded w-fit" onClick={handleExit} >
-            Exit Interview
+      {/* Right Panel */}
+      <div className="w-1/2 h-full bg-[#1e293b] p-6 text-white flex flex-col justify-between">
+        <div className="flex justify-end gap-5 items-center">
+          <Timer initialTime={1800} onComplete={handleTimeout} />
+          <button
+            onClick={handleToggleCodeEditor}
+            className="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded"
+          >
+            {showCodeEditor ? "Hide Code Editor" : "Open Code Editor"}
           </button>
         </div>
 
-        {/* Right Panel */}
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-end  rounded-lg">
-            <Timer initialTime={100} />
-          </div>
-          <div className="bg-black rounded-lg overflow-hidden h-100 flex items-center justify-center">
-            {cameraOn && cameraStream ? (
+        <div>
+          <div className="h-80 w-full flex items-center justify-center">
+            <div className="w-[50%] h-80 bg-black flex items-center justify-center relative">
               <video
-                ref={webcamVideoRef}
+                ref={videoRef}
                 autoPlay
                 muted
-                playsInline
-                className="w-full h-100 object-cover"
+                className="w-full h-full object-cover rounded"
               />
+              {!cameraOn && (
+                <span className="absolute text-white">Camera off</span>
+              )}
+            </div>
+
+            {friendAdded ? (
+              <div className="w-[100%] h-80 bg-black flex items-center justify-center">
+                <span>Friend's Camera View</span>
+              </div>
             ) : (
-              <div className="text-white text-center">
-                <FaVideo className="text-5xl mx-auto mb-2 text-gray-500" />
-                <p className="text-sm text-gray-400">Camera is off</p>
+              <div >
+               
+                  
               </div>
             )}
           </div>
 
-          <div className="flex justify-center gap-4 p-4">
+          <div className="flex gap-4 mt-3">
             <button
-              onClick={() => setCameraOn((prev) => !prev)}
-              className="flex items-center gap-2 px-3 bg-red-500 py-2 rounded-md text-sm text-white hover:bg-red-600"
+              onClick={handleCameraToggle}
+              className="bg-green-500 px-4 py-1 rounded hover:bg-green-600"
             >
-              {cameraOn ? <FaVideoSlash /> : <FaVideo />}
-              {cameraOn ? "Camera Off" : "Camera On"}
-            </button>
-
-            <button className="flex items-center gap-2 px-3 bg-red-500 py-2 rounded-md text-sm text-white hover:bg-red-600">
-              <FaStopCircle />
-              Stop
+              {cameraOn ? "Off Camera" : "On Camera"}
             </button>
           </div>
+        </div>
 
-          <div className="bg-[#0B1120] p-4 rounded-lg h-20 flex items-center justify-center">
-            {isSpeaking && (
-              <p className="text-green-400 text-sm tracking-widest animate-pulse">
-                🎤 You are speaking...
-              </p>
-            )}
-            {!isSpeaking && (
-              <p className="text-gray-400 text-sm tracking-widest animate-pulse">
-                🎤 You are not speaking...
-              </p>
+        <div>
+          <h3 className="text-lg mb-2">🎙️ Voice Input (with speaking animation)</h3>
+          <div className="flex gap-4 items-center">
+            <button
+              onClick={handleMicToggle}
+              className="bg-green-500 px-4 py-1 rounded hover:bg-green-600"
+            >
+              {micOn ? "Stop Mic" : "Start Mic"}
+            </button>
+            {isRecording && (
+              <div className="w-4 h-4 bg-red-500 rounded-full animate-ping" />
             )}
           </div>
         </div>
+
+        <div>
+          <button className="w-full bg-black py-3 rounded hover:bg-gray-800 text-white text-lg font-semibold">
+            🚪 Exit Room
+          </button>
+        </div>
       </div>
 
-      {/* Code Editor Section */}
-      {showEditor && (
-        <div className="bg-[#0B1120] p-5">
-          <CodeEditor />
+      {/* Modal */}
+      {showModal && (
+        <div className="absolute inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[400px] text-black relative">
+            <h2 className="text-xl font-bold mb-4">👥 Invite Your Friend</h2>
+            <p className="mb-3">Share this URL to invite your friend:</p>
+            <div className="bg-gray-100 p-2 rounded flex justify-between items-center mb-4">
+              <input
+                type="text"
+                readOnly
+                value={roomURL}
+                className="bg-transparent w-full text-sm outline-none"
+              />
+              <button
+                onClick={handleCopy}
+                className="ml-2 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Copy
+              </button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setFriendAdded(true);
+                  setShowModal(false);
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Done
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

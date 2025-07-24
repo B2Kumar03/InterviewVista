@@ -1,8 +1,10 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { AuthContext } from "../context/UserAuth";
+import { getAuth, signInWithPopup, GoogleAuthProvider,getRedirectResult, signOut } from "firebase/auth"; 
+import { app } from "./firebaseConfig"; // Firebase config
 
 
 const Login = () => {
@@ -10,6 +12,11 @@ const Login = () => {
  const { login } = useContext(AuthContext)
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
+  const [user, setUser] = useState(null);
+
+ 
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -36,9 +43,17 @@ const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    toast.success("Logged in with Google!");
-    // Add Google OAuth flow here in future
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        setUser(user);  // Set the logged-in user info
+      })
+      .catch((error) => {
+        console.error("Error during login:", error.message);
+      });
   };
+
+
 
   return (
     <form onSubmit={handleLogin} className="bg-[#0B1120] p-6 rounded shadow max-w-md mx-auto mt-10">

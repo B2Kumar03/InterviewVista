@@ -48,7 +48,7 @@ const MainSection = () => {
       {/* Image */}
       <div className="w-full max-w-xl flex justify-center">
         <img
-          src="https://github.com/B2Kumar03/project_Image/blob/main/Screenshot%202025-05-18%20194856.png?raw=true"
+          src="https://github.com/B2Kumar03/project_Image/blob/main/Screenshot%202025-07-22%20153238.png?raw=true"
           alt="Interview Room"
           className="rounded-lg shadow-lg w-full object-contain"
         />
